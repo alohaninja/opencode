@@ -860,8 +860,6 @@ describe("session HttpApi", () => {
         })
         expect(archived.time.archived).toBe(1)
 
-        // Clients clear the field by omitting it; JSON.stringify drops
-        // undefined-valued properties, so the body arrives as {"time":{}}.
         const cleared = yield* requestJson<Session.Info>(path, {
           method: "PATCH",
           headers,

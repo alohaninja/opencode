@@ -197,11 +197,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
           permission: Permission.merge(current.permission ?? [], ctx.payload.permission),
         })
       }
-      // Presence of the `time` object signals archive intent. An explicit
-      // archived value archives; an absent value clears it, which is how clients
-      // unarchive. Checking `time.archived !== undefined` here would make
-      // unarchive unreachable, since JSON.stringify drops undefined-valued
-      // properties and the request body arrives as {"time":{}}.
+      // An absent `archived` inside `time` is the clear signal; body arrives as {"time":{}}.
       if (ctx.payload.time !== undefined) {
         yield* session.setArchived({ sessionID: ctx.params.sessionID, time: ctx.payload.time.archived })
       }

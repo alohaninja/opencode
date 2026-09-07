@@ -42,14 +42,8 @@ export function loadDialogSessionList<T>(input: {
   )
 }
 
-/**
- * Category heading for a session in the list. Archived sessions are grouped
- * together so they stay discoverable without being interleaved into the date
- * buckets alongside active sessions.
- */
 export function dialogSessionListCategory(input: { archived?: number; updated: number; now?: Date }): string {
-  // ArchivedTimestamp permits 0 and negative values for legacy compatibility, so
-  // presence must be tested rather than truthiness.
+  // ArchivedTimestamp accepts 0 and negatives, so test presence, not truthiness.
   if (typeof input.archived === "number") return "Archived"
   const today = (input.now ?? new Date()).toDateString()
   const label = new Date(input.updated).toDateString()
@@ -265,7 +259,6 @@ export function DialogSessionList() {
       }
     }
 
-    // Share one Date across the whole pass rather than allocating per session.
     const now = new Date()
     const remaining = displayOrder
       .filter((id) => !pinnedSet.has(id))
@@ -367,8 +360,6 @@ export function DialogSessionList() {
         },
         {
           command: "session.archive",
-          // Label reflects what ctrl+a will do to the highlighted session, which is
-          // both shorter than a static "archive/unarchive" and unambiguous.
           title: (option) => {
             const session = option ? sessions().find((item) => item.id === option.value) : undefined
             return typeof session?.time?.archived === "number" ? "unarchive" : "archive"
@@ -380,7 +371,7 @@ export function DialogSessionList() {
             await sdk.client.session
               .update({
                 sessionID: option.value,
-                // Omitting `archived` clears it; the body serializes to {"time":{}}.
+                // Empty `time` clears archived; an absent value is the clear signal.
                 time: archived ? {} : { archived: Date.now() },
               })
               .catch((err) => {

@@ -517,8 +517,6 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     return typeof item.disabled === "function" ? item.disabled(selected()) : item.disabled
   }
 
-  // Actions may label themselves from the highlighted option, so a toggle can read
-  // "archive" or "unarchive" instead of a static both-ways label.
   function actionTitle(item: { title: Action["title"] }) {
     return typeof item.title === "function" ? item.title(selected()) : item.title
   }
