@@ -154,7 +154,10 @@ export function toRow(info: Info) {
     time_created: info.time.created,
     time_updated: info.time.updated,
     time_compacting: info.time.compacting,
-    time_archived: info.time.archived,
+    // Coalesce to null for parity with the projector: drizzle drops undefined keys
+    // from `.set()`, so an undefined here would silently preserve a stale value if
+    // this row is ever reused for an update rather than an insert.
+    time_archived: info.time.archived ?? null,
   }
 }
 

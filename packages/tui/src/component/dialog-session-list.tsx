@@ -265,12 +265,14 @@ export function DialogSessionList() {
       }
     }
 
+    // Share one Date across the whole pass rather than allocating per session.
+    const now = new Date()
     const remaining = displayOrder
       .filter((id) => !pinnedSet.has(id))
       .map((id) => {
         const x = sessionMap.get(id)
         if (!x) return undefined
-        return buildOption(id, dialogSessionListCategory({ archived: x.time?.archived, updated: x.time.updated }))
+        return buildOption(id, dialogSessionListCategory({ archived: x.time?.archived, updated: x.time.updated, now }))
       })
       .filter((x) => x !== undefined)
 
