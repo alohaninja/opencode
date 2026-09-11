@@ -28,14 +28,14 @@ export function calculate(
       value.cache_creation_input_tokens ?? 0,
     ]
     const tokens = raw.map((value) => (count(value) ? Number(value) : 0))
-    const context = tokens[0] + tokens[2] + tokens[3]
+    const inputContext = tokens[0] + tokens[2] + tokens[3]
     // Anthropic may report a dated snapshot id; fall back to the configured advisor model's pricing.
     const pricing = models[model]?.cost ?? models[fallback]?.cost
     const rates =
       pricing?.tiers
-        ?.filter((rate) => rate.tier.type === "context" && context > rate.tier.size)
+        ?.filter((rate) => rate.tier.type === "context" && inputContext > rate.tier.size)
         .sort((a, b) => b.tier.size - a.tier.size)[0] ??
-      (pricing?.experimentalOver200K && context > 200000 ? pricing.experimentalOver200K : pricing)
+      (pricing?.experimentalOver200K && inputContext > 200000 ? pricing.experimentalOver200K : pricing)
     const prices = [rates?.input, rates?.output, rates?.cache?.read, rates?.cache?.write]
     const unsupportedTTL =
       isRecord(value.cache_creation) && Number(value.cache_creation.ephemeral_1h_input_tokens ?? 0) > 0

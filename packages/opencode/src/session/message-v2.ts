@@ -429,16 +429,20 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
   }
 
   const key = (sessionID: string, id: string) => `${sessionID}\0${id}`
-  const calls = new Map<string, SessionV1.ToolPart>()
+  // Decode each advisor part once; every later pass reads from these maps.
+  const calls = new Map<string, { part: SessionV1.ToolPart; call: SessionAdvisor.Call }>()
+  const decoded = new Map<string, SessionAdvisor.Call | undefined>()
   const receipts = new Set<string>()
   const callPositions = new Set<string>()
   const ledgers = new Map<string, SessionAdvisor.Response[]>()
   for (const message of input) {
     for (const part of message.parts) {
-      if (part.type === "tool" && part.metadata?.providerExecuted && SessionAdvisor.call(part)) {
-        calls.set(key(part.sessionID, part.callID), part)
-      }
+      if (part.type !== "tool" || !hasAdvisor(part)) continue
+      const call = SessionAdvisor.call(part)
+      decoded.set(part.id, call)
+      if (call && part.metadata?.providerExecuted) calls.set(key(part.sessionID, part.callID), { part, call })
     }
+    const byID = new Map(message.parts.map((part) => [part.id, part]))
     const responses = message.parts.flatMap((part) => {
       if (part.type !== "step-finish") return []
       const response = SessionAdvisor.response(part)
@@ -449,8 +453,8 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
       for (const entry of response.entries) {
         if (entry.type === "advisor-result") receipts.add(key(message.info.sessionID, entry.callID))
         if (entry.type === "part") {
-          const part = message.parts.find((part) => part.id === entry.partID)
-          if (part?.type === "tool" && part.metadata?.providerExecuted && SessionAdvisor.call(part)) {
+          const part = byID.get(entry.partID)
+          if (part?.type === "tool" && part.metadata?.providerExecuted && decoded.get(part.id)) {
             callPositions.add(key(part.sessionID, part.callID))
           }
         }
@@ -478,7 +482,7 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
         sessionID: part.sessionID,
         messageID: part.messageID,
         type: "text" as const,
-        text: marker(SessionAdvisor.call(part)),
+        text: marker(decoded.get(part.id)),
       }
     }),
   })
@@ -548,12 +552,12 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
         if (entry.type === "advisor-result") {
           yield* flush()
           const id = key(message.info.sessionID, entry.callID)
-          const part = calls.get(id)
-          const call = part && SessionAdvisor.call(part)
-          if (!call) {
+          const found = calls.get(id)
+          if (!found) {
             content.push({ type: "text", text: SessionAdvisor.unavailable })
             continue
           }
+          const { part, call } = found
           if (!emitted.has(id)) {
             // The call sits in an ordinary message, where its marker already rendered the advice.
             if (!callPositions.has(id) && (ledgers.get(part.messageID)?.length ?? 0) === 0) continue
@@ -578,7 +582,7 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
         const part = parts.get(entry.partID)!
         if (part.type === "tool" && hasAdvisor(part)) {
           yield* flush()
-          const call = SessionAdvisor.call(part)
+          const call = decoded.get(part.id)
           const id = key(part.sessionID, part.callID)
           if (call?.state === "completed") {
             if (!receipts.has(id)) {

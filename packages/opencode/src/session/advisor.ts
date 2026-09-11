@@ -160,7 +160,8 @@ export function display(result: Result) {
     case "advisor_redacted_result":
       return "[Advisor consultation completed; advice is encrypted.]"
     case "advisor_tool_result_error":
-      return `[Advisor unavailable: ${result.errorCode}]`
+      // The code is replayed into model context; only a plain identifier is rendered.
+      return `[Advisor unavailable: ${/^[A-Za-z0-9_.-]{1,64}$/.test(result.errorCode) ? result.errorCode : "unknown"}]`
   }
 }
 

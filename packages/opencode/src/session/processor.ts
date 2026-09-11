@@ -522,6 +522,7 @@ const layer = Layer.effect(
             throw new Error(value.message)
 
           case "step-start":
+            resultSeen = false
             if (!ctx.snapshot) ctx.snapshot = yield* snapshot.track()
             yield* session.updatePart({
               id: PartID.ascending(),
