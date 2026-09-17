@@ -606,6 +606,7 @@ describe("session.message-v2.toModelMessage", () => {
   test.each([
     ["anthropic.claude-sonnet-4-6", "keeps"],
     ["us.amazon.nova-pro-v1:0", "keeps"],
+    ["amazon.nova-pro-v1:0", "keeps"],
     ["global.openai.gpt-6-astra", "hoists"],
     ["us.mistral.pixtral-large-2502-v1:0", "hoists"],
   ] as const)("bedrock %s %s image tool-result media", async (apiID, expected) => {
